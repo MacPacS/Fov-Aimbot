@@ -1,0 +1,101 @@
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
+
+-- Create a new Drawing object for the FOV circle
+local circle = Drawing.new("Circle")
+circle.Visible = true
+circle.Color = Color3.fromRGB(255, 255, 255)
+circle.Thickness = 2
+circle.Filled = false
+
+-- Variable to store if right mouse button is held
+local isRightMouseDown = false
+
+-- Function to update the FOV circle size and position
+local function updateCircle()
+    local viewportSize = camera.ViewportSize
+    
+    -- Set the radius of the circle for a 20-degree FOV
+    local radius = math.tan(math.rad(10)) * viewportSize.Y / 2
+
+    circle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    circle.Radius = radius
+end
+
+-- Update the circle on each render step
+RunService.RenderStepped:Connect(function()
+    updateCircle()
+end)
+
+-- Function to check if a point is inside the FOV circle
+local function isInFOVCircle(point)
+    local circleCenter = circle.Position
+    local radius = circle.Radius
+    return (point - circleCenter).Magnitude <= radius
+end
+
+-- Function to find the closest target within the FOV
+local function findTarget()
+    local closestTarget = nil
+    local shortestDistance = math.huge
+
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("Head") then
+            local head = otherPlayer.Character.Head
+            local screenPoint = camera:WorldToViewportPoint(head.Position)
+
+            if isInFOVCircle(Vector2.new(screenPoint.X, screenPoint.Y)) then
+                local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                if distance < shortestDistance then
+                    closestTarget = head
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+
+    return closestTarget
+end
+
+-- Function to handle aiming at the target
+local function aimAtTarget(target)
+    if target then
+        camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+    end
+end
+
+-- Function to continuously aim at the target while holding right-click
+local function followTarget()
+    while isRightMouseDown do
+        local target = findTarget()
+        aimAtTarget(target)
+        RunService.RenderStepped:Wait()
+    end
+end
+
+-- Connect right mouse button down event
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 and not gameProcessed then
+        isRightMouseDown = true
+        followTarget()
+    end
+end)
+
+-- Connect right mouse button up event
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 and not gameProcessed then
+        isRightMouseDown = false
+    end
+end)
+
+-- Clean up the circle when the script is disabled or destroyed
+script.Parent.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        circle:Remove()
+    end
+end)
