@@ -9,7 +9,7 @@ local mouse = player:GetMouse()
 -- Create a new Drawing object for the FOV circle
 local circle = Drawing.new("Circle")
 circle.Visible = true
-circle.Color = Color3.fromRGB(255, 255, 255)
+circle.Color = Color3.fromRGB(255, 0, 0)
 circle.Thickness = 2
 circle.Filled = false
 
@@ -21,7 +21,7 @@ local function updateCircle()
     local viewportSize = camera.ViewportSize
     
     -- Set the radius of the circle for a 20-degree FOV
-    local radius = math.tan(math.rad(10)) * viewportSize.Y / 2
+    local radius = math.tan(math.rad(20)) * viewportSize.Y / 2
 
     circle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
     circle.Radius = radius
